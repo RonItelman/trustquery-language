@@ -1,5 +1,5 @@
 export function generateContextFacet(): string {
-  const headers = ['key', 'value']
+  const headers = ['index', 'key', 'value']
 
   // Calculate column widths based on header names
   const colWidths = headers.map((h) => h.length)

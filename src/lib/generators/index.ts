@@ -3,7 +3,10 @@ import {generateContextFacet} from './context.js'
 import {generateDataFacet} from './data.js'
 import {generateIntentFacet} from './intent.js'
 import {generateMeaningFacet} from './meaning.js'
+import {generateQueryFacet} from './query.js'
+import {generateScoreFacet} from './score.js'
 import {generateStructureFacet} from './structure.js'
+import {generateTasksFacet} from './tasks.js'
 
 export interface TqlGeneratorInput {
   headers: string[]
@@ -11,12 +14,12 @@ export interface TqlGeneratorInput {
 }
 
 export interface TqlGeneratorOptions {
-  facets?: ('data' | 'meaning' | 'structure' | 'ambiguity' | 'intent' | 'context')[]
+  facets?: ('data' | 'meaning' | 'structure' | 'ambiguity' | 'intent' | 'context' | 'query' | 'tasks' | 'score')[]
 }
 
 export function generateTql(input: TqlGeneratorInput, options: TqlGeneratorOptions = {}): string {
   const {headers, rows} = input
-  const facets = options.facets || ['data', 'meaning', 'structure', 'ambiguity', 'intent', 'context']
+  const facets = options.facets || ['data', 'meaning', 'structure', 'ambiguity', 'intent', 'context', 'query', 'tasks', 'score']
 
   const sections: string[] = []
 
@@ -42,6 +45,18 @@ export function generateTql(input: TqlGeneratorInput, options: TqlGeneratorOptio
 
   if (facets.includes('context')) {
     sections.push(generateContextFacet())
+  }
+
+  if (facets.includes('query')) {
+    sections.push(generateQueryFacet())
+  }
+
+  if (facets.includes('tasks')) {
+    sections.push(generateTasksFacet())
+  }
+
+  if (facets.includes('score')) {
+    sections.push(generateScoreFacet())
   }
 
   return sections.join('\n\n')

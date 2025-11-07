@@ -1,5 +1,5 @@
 export function generateAmbiguityFacet(): string {
-  const headers = ['query_trigger', 'ambiguity_type', 'ambiguity_risk']
+  const headers = ['index', 'query_trigger', 'ambiguity_type', 'ambiguity_risk']
 
   // Calculate column widths based on header names
   const colWidths = headers.map((h) => h.length)

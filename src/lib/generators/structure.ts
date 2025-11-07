@@ -28,6 +28,7 @@ export function generateStructureFacet(input: StructureFacetInput): string {
 
   // Calculate column widths
   const colWidths = {
+    index: Math.max('index'.length, headers.length.toString().length),
     column: Math.max(...structures.map((s) => s.column.length), 'column'.length),
     nullAllowed: 'nullAllowed'.length,
     dataType: 'dataType'.length,
@@ -46,6 +47,8 @@ export function generateStructureFacet(input: StructureFacetInput): string {
   // Add header row
   const headerRow =
     '| ' +
+    'index'.padEnd(colWidths.index) +
+    ' | ' +
     'column'.padEnd(colWidths.column) +
     ' | ' +
     'nullAllowed'.padEnd(colWidths.nullAllowed) +
@@ -65,6 +68,8 @@ export function generateStructureFacet(input: StructureFacetInput): string {
   // Add separator row
   const separator =
     '|' +
+    '-'.repeat(colWidths.index + 2) +
+    '|' +
     '-'.repeat(colWidths.column + 2) +
     '|' +
     '-'.repeat(colWidths.nullAllowed + 2) +
@@ -82,9 +87,12 @@ export function generateStructureFacet(input: StructureFacetInput): string {
   lines.push(separator)
 
   // Add data rows (all fields blank except column name)
-  for (const structure of structures) {
+  for (let i = 0; i < structures.length; i++) {
+    const structure = structures[i]
     const dataRow =
       '| ' +
+      (i + 1).toString().padEnd(colWidths.index) +
+      ' | ' +
       structure.column.padEnd(colWidths.column) +
       ' | ' +
       structure.nullAllowed.padEnd(colWidths.nullAllowed) +

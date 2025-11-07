@@ -10,15 +10,15 @@ export default class Create extends Command {
   static examples = [
     `<%= config.bin %> <%= command.id %> --source csv --in data.csv
 Creating TQL file from data.csv...
-✓ Created data.tql with 6 facets (@data, @meaning, @structure, @ambiguity, @intent, @context)`,
+✓ Created data.tql with 9 facets (@data, @meaning, @structure, @ambiguity, @intent, @context, @query, @tasks, @score)`,
     `<%= config.bin %> <%= command.id %> --source csv --in data.csv --out custom.tql
 Creating TQL file from data.csv...
-✓ Created custom.tql with 6 facets (@data, @meaning, @structure, @ambiguity, @intent, @context)`,
+✓ Created custom.tql with 9 facets (@data, @meaning, @structure, @ambiguity, @intent, @context, @query, @tasks, @score)`,
   ]
 
   static flags = {
     facets: Flags.string({
-      description: 'Comma-separated list of facets to generate (data,meaning,structure,ambiguity,intent,context)',
+      description: 'Comma-separated list of facets to generate (data,meaning,structure,ambiguity,intent,context,query,tasks,score)',
       required: false,
     }),
     in: Flags.string({
@@ -51,7 +51,7 @@ Creating TQL file from data.csv...
 
       // Parse facets flag
       const facets = facetsFlag
-        ? (facetsFlag.split(',').map((f) => f.trim()) as ('data' | 'meaning' | 'structure' | 'ambiguity' | 'intent' | 'context')[])
+        ? (facetsFlag.split(',').map((f) => f.trim()) as ('data' | 'meaning' | 'structure' | 'ambiguity' | 'intent' | 'context' | 'query' | 'tasks' | 'score')[])
         : undefined
 
       // Generate TQL content
@@ -69,7 +69,7 @@ Creating TQL file from data.csv...
       // Write to file
       fs.writeFileSync(output, tqlContent, 'utf-8')
 
-      const facetList = facets || ['data', 'meaning', 'structure', 'ambiguity', 'intent', 'context']
+      const facetList = facets || ['data', 'meaning', 'structure', 'ambiguity', 'intent', 'context', 'query', 'tasks', 'score']
       const facetNames = facetList.map((f) => `@${f}`).join(', ')
 
       this.log(`✓ Created ${output}`)
