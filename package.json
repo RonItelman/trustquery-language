@@ -1,7 +1,7 @@
 {
   "name": "trustql",
   "description": "CLI for Trust Query Language",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Ron Itelman",
   "bin": {
     "tql": "bin/run.js"
