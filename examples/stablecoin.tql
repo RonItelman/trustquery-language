@@ -53,11 +53,10 @@
 | 8     | status               |             |          |          |          |        |                |
 | 9     | settlement_time_mins |             |          |          |          |        |                |
 
-@context[2]:
-| index | key             | value |
-|-------|-----------------|-------|
-| 1     | user-timezone   | MST   |
-| 2     | system-timezone | UTC   |
+@context[1]:
+| index | key           | value |
+|-------|---------------|-------|
+| 1     | user-timezone | PST   |
 
 @tasks[1]:
 | index | name              | description                    | formula                                |

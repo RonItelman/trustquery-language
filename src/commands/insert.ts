@@ -1,6 +1,6 @@
 import {Command, Flags} from '@oclif/core'
 
-import {insertRow} from '../lib/operations/insert.js'
+import {insertRow} from '../lib/operations/crud.js'
 
 export default class Insert extends Command {
   static description = 'Insert a row into a TQL file facet'

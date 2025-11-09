@@ -4,8 +4,23 @@
 export { generateTql } from './lib/generators/index.js'
 
 export type { TqlGeneratorInput, TqlGeneratorOptions } from './lib/generators/index.js'
-// Operations
-export { insertRow, insertRows } from './lib/operations/insert.js'
+// Operations (In-Memory First-Class)
+export {
+  deleteRowInMemory,
+  deleteRowsInMemory,
+  insertRowInMemory,
+  insertRowsInMemory,
+  updateRowInMemory,
+} from './lib/operations/crud.js'
+
+// Operations (File-Based Wrappers)
+export {
+  deleteRow,
+  deleteRows,
+  insertRow,
+  insertRows,
+  updateRow,
+} from './lib/operations/crud.js'
 
 // Generator (JSON → TQL)
 export { generateTqlFromJson, writeTql } from './lib/parser/generator.js'

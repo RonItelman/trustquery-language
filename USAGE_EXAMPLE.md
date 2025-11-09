@@ -50,36 +50,56 @@ const tqlString = handleCsvDrop('./data/transactions.csv', 'tql')
 const tqlJson = handleCsvDrop('./data/transactions.csv', 'json')
 ```
 
-## Example: Working with TQL in Memory
+## Example: Working with TQL in Memory (Web App / REST API)
 
 ```typescript
-import { readCsv, generateTql, parseTql, writeTql } from 'trustql'
+import {
+  readCsv,
+  generateTql,
+  parseTqlFromString,
+  generateTqlFromJson,
+  insertRowInMemory,
+  updateRowInMemory,
+  deleteRowInMemory
+} from 'trustql'
 
-// Read CSV and generate TQL
-const csvData = readCsv('./data.csv')
+// 1. User uploads CSV (web app scenario)
+const csvData = readCsv(uploadedFile)
+
+// 2. Generate TQL string (in-memory, no files)
 const tqlString = generateTql({
   headers: csvData.headers,
   rows: csvData.rows
 })
 
-// Save initial TQL
-fs.writeFileSync('data.tql', tqlString)
+// 3. Parse to JSON for manipulation (in-memory)
+const doc = parseTqlFromString(tqlString)
 
-// Later: Parse TQL to JSON for manipulation
-const doc = parseTql('data.tql')
-
-// Update definitions
-doc.meaning.rows.find(r => r.column === 'amount')!.definition = 'Transaction amount in USD'
-
-// Add context
-doc.context.rows.push({
-  index: 1,
-  key: 'timezone',
+// 4. CRUD operations (in-memory - NO filesystem)
+insertRowInMemory(doc, 'context', {
+  key: 'user-timezone',
   value: 'America/New_York'
 })
 
-// Save updated TQL
-writeTql('data.tql', doc)
+updateRowInMemory(doc, 'context', 1, {
+  value: 'America/Los_Angeles'
+})
+
+insertRowInMemory(doc, 'meaning', {
+  column: 'amount_usd',
+  definition: 'Transaction amount in USD (thousands)',
+  user_confirmed: 'yes'
+})
+
+deleteRowInMemory(doc, 'query', 1)
+
+// 5. Convert back to TQL string
+const updatedTqlString = generateTqlFromJson(doc)
+
+// 6. Send to frontend or save to database
+await saveToDatabase(userId, datasetId, updatedTqlString)
+// OR return to client
+res.json({ tql: updatedTqlString })
 ```
 
 ## Example: Generate TQL without Files
@@ -121,35 +141,41 @@ function processTql(doc: TqlDocument) {
 }
 ```
 
-## Example: Insert Rows Programmatically
+## Example: File-Based CRUD (Convenience Wrappers)
 
 ```typescript
-import { insertRow, insertRows } from 'trustql'
+import { insertRow, insertRows, updateRow, deleteRow, deleteRows } from 'trustql'
 
-// Insert a single row to @context facet
+// INSERT
 insertRow('data.tql', 'context', {
   key: 'user-timezone',
   value: 'MST'
 })
 
-// Insert multiple rows at once
 insertRows('data.tql', 'tasks', [
   {
     name: 'total_transferred',
     description: 'Sum of all completed transfers',
     formula: 'SUM(amount_usd WHERE status=completed)'
-  },
-  {
-    name: 'avg_settlement',
-    description: 'Average settlement time',
-    formula: 'AVG(settlement_time_mins)'
   }
 ])
 
-// Index is auto-assigned based on current row count
+// UPDATE (by index - partial updates supported)
+updateRow('data.tql', 'context', 1, {
+  value: 'PST'  // Only update the value field
+})
+
+// DELETE
+deleteRow('data.tql', 'context', 1)
+deleteRows('data.tql', 'context', [2, 3, 5])
+
+// Note: These are convenience wrappers around the in-memory operations
+// They do: parseTql → modify → writeTql
 ```
 
-## CLI: Create Command
+## CLI Commands
+
+### Create (with stdin/stdout for in-memory testing)
 
 ```bash
 # Create TQL file from CSV (default format)
@@ -158,11 +184,26 @@ tql create --source csv --in data.csv
 # Create JSON file from CSV
 tql create --source csv --in data.csv --format json
 
-# Specify custom output path
-tql create --source csv --in data.csv --format json --out output.json
+# Output to stdout (for testing in-memory, no files created)
+tql create --source csv --in data.csv --out -
+
+# Read from stdin, output to stdout (fully in-memory)
+cat data.csv | tql create --source csv --in -
+echo "name,age\nAlice,30\nBob,25" | tql create --source csv --in -
+
+# Paste CSV from clipboard (macOS)
+pbpaste | tql create --source csv --in -
+
+# Copy CSV in VSCode, paste in terminal, see TQL output:
+# 1. Copy CSV content from VSCode
+# 2. Run: pbpaste | tql create --source csv --in -
+# 3. See TQL output immediately
+
+# JSON format from stdin
+cat data.csv | tql create --source csv --in - --format json
 ```
 
-## CLI: Insert Command
+### Insert
 
 ```bash
 # Insert using key/value flags (for @context facet)
@@ -172,19 +213,54 @@ tql insert --file data.tql --facet context --key user-timezone --value MST
 tql insert --file data.tql --facet tasks --data '{"name":"total_transferred","description":"Sum of all completed transfers","formula":"SUM(amount_usd WHERE status=completed)"}'
 ```
 
+### Update
+
+```bash
+# Update a row by index (partial updates supported)
+tql update --file data.tql --facet context --index 1 --data '{"value":"PST"}'
+
+# Update multiple fields
+tql update --file data.tql --facet meaning --index 2 --data '{"definition":"Updated definition","user_confirmed":"yes"}'
+```
+
+### Delete
+
+```bash
+# Delete a single row by index
+tql delete --file data.tql --facet context --index 1
+
+# Delete multiple rows by indices
+tql delete --file data.tql --facet context --indices 1,3,5
+```
+
 ## API Reference
 
 ### Core Functions
 
+**Reading & Parsing:**
 - `readCsv(filePath: string)` - Read CSV file
-- `generateTql(input, options?)` - Generate TQL string from CSV data (in-memory)
 - `parseTql(filePath: string)` - Parse TQL file to JSON
 - `parseTqlFromString(content: string)` - Parse TQL content string to JSON (in-memory)
-- `generateTqlFromJson(doc: TqlDocument)` - Convert JSON to TQL string
+
+**Generating & Writing:**
+- `generateTql(input, options?)` - Generate TQL string from CSV data (in-memory)
+- `generateTqlFromJson(doc: TqlDocument)` - Convert JSON to TQL string (in-memory)
 - `writeTql(filePath: string, doc: TqlDocument)` - Write TQL document to .tql file
 - `writeTqlJson(filePath: string, doc: TqlDocument)` - Write TQL document to .json file
-- `insertRow(filePath, facet, data)` - Insert a single row into a facet
-- `insertRows(filePath, facet, dataArray)` - Insert multiple rows into a facet
+
+**In-Memory CRUD Operations (First-Class):**
+- `insertRowInMemory(doc, facet, data)` - Insert a row (mutates doc, no I/O)
+- `insertRowsInMemory(doc, facet, dataArray)` - Insert multiple rows (mutates doc, no I/O)
+- `updateRowInMemory(doc, facet, index, data)` - Update a row by index (mutates doc, no I/O)
+- `deleteRowInMemory(doc, facet, index)` - Delete a row by index (mutates doc, no I/O)
+- `deleteRowsInMemory(doc, facet, indices)` - Delete multiple rows (mutates doc, no I/O)
+
+**File-Based CRUD Operations (Convenience Wrappers):**
+- `insertRow(filePath, facet, data)` - Parse → insert → write
+- `insertRows(filePath, facet, dataArray)` - Parse → insert multiple → write
+- `updateRow(filePath, facet, index, data)` - Parse → update → write
+- `deleteRow(filePath, facet, index)` - Parse → delete → write
+- `deleteRows(filePath, facet, indices)` - Parse → delete multiple → write
 
 ### Types
 
