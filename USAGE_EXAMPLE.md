@@ -262,8 +262,14 @@ tql delete --file data.tql --facet context --indices 1,3,5
 - `deleteRow(filePath, facet, index)` - Parse → delete → write
 - `deleteRows(filePath, facet, indices)` - Parse → delete multiple → write
 
+**Diff Operations (In-Memory):**
+- `diffTqlDocuments(before, after)` - Compute diff between two documents
+- `diffConversationStep(conversation, fromIndex, toIndex)` - Diff documents in conversation
+- `formatDiffAsMarkdown(diff, useColors?)` - Format as markdown with terminal colors
+- `formatDiffAsJson(diff)` - Format as JSON string
+
 ### Types
 
-All types exported: `TqlDocument`, `TqlConversation`, `TableRow`, `MeaningRow`, `StructureRow`, etc.
+All types exported: `TqlDocument`, `TqlConversation`, `TqlDiff`, `FacetDiff`, `RowChange`, `TableRow`, `MeaningRow`, `StructureRow`, etc.
 
 See `src/lib/parser/types.ts` for complete type definitions.

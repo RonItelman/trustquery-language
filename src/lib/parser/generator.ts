@@ -8,42 +8,16 @@ import type {TqlDocument} from './types.js'
 export function generateTqlFromJson(doc: TqlDocument): string {
   const sections: string[] = []
 
-  // Generate each facet in logical order
-  if (doc.table.rows.length > 0) {
-    sections.push(generateTableSection(doc))
-  }
-
-  if (doc.meaning.rows.length > 0) {
-    sections.push(generateMeaningSection(doc))
-  }
-
-  if (doc.structure.rows.length > 0) {
-    sections.push(generateStructureSection(doc))
-  }
-
-  if (doc.ambiguity.rows.length > 0) {
-    sections.push(generateAmbiguitySection(doc))
-  }
-
-  if (doc.intent.rows.length > 0) {
-    sections.push(generateIntentSection(doc))
-  }
-
-  if (doc.context.rows.length > 0) {
-    sections.push(generateContextSection(doc))
-  }
-
-  if (doc.query.rows.length > 0) {
-    sections.push(generateQuerySection(doc))
-  }
-
-  if (doc.tasks.rows.length > 0) {
-    sections.push(generateTasksSection(doc))
-  }
-
-  if (doc.score.rows.length > 0) {
-    sections.push(generateScoreSection(doc))
-  }
+  // Generate all 9 facets (always, even if empty)
+  sections.push(generateTableSection(doc))
+  sections.push(generateMeaningSection(doc))
+  sections.push(generateStructureSection(doc))
+  sections.push(generateAmbiguitySection(doc))
+  sections.push(generateIntentSection(doc))
+  sections.push(generateContextSection(doc))
+  sections.push(generateQuerySection(doc))
+  sections.push(generateTasksSection(doc))
+  sections.push(generateScoreSection(doc))
 
   return sections.join('\n\n')
 }
@@ -67,7 +41,9 @@ function generateTable(headers: string[], rows: Record<string, any>[], rowCount:
   // Calculate column widths
   const colWidths: number[] = headers.map((header) => {
     const headerWidth = header.length
-    const maxDataWidth = Math.max(...rows.map((row) => String(row[header] || '').length))
+    const maxDataWidth = rows.length > 0
+      ? Math.max(...rows.map((row) => String(row[header] || '').length))
+      : 0
     return Math.max(headerWidth, maxDataWidth)
   })
 
@@ -89,9 +65,13 @@ function generateTable(headers: string[], rows: Record<string, any>[], rowCount:
 }
 
 function generateTableSection(doc: TqlDocument): string {
-  if (doc.table.rows.length === 0) return ''
+  if (doc.table.rows.length === 0) {
+    // Return empty table with index column only
+    const headers = ['index']
+    return generateTable(headers, [], 0, 'table')
+  }
 
-  // Get all column names from the first row (excluding index)
+  // Get all column names from the first row
   const firstRow = doc.table.rows[0]
   const headers = Object.keys(firstRow)
 

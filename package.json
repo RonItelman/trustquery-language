@@ -1,5 +1,5 @@
 {
-  "name": "trustql",
+  "name": "@trustquery/cli",
   "description": "CLI for Trust Query Language",
   "version": "0.2.0",
   "author": "Ron Itelman",
@@ -71,6 +71,8 @@
   },
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
+    "demo": "npm run build && node bin/run.js example",
+    "example": "npm run build && node bin/run.js example",
     "lint": "eslint",
     "postpack": "shx rm -f oclif.manifest.json",
     "posttest": "npm run lint",

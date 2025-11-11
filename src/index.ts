@@ -22,6 +22,14 @@ export {
   updateRow,
 } from './lib/operations/crud.js'
 
+// Diff Operations
+export {
+  diffConversationStep,
+  diffTqlDocuments,
+  formatDiffAsJson,
+  formatDiffAsMarkdown,
+} from './lib/operations/diff.js'
+
 // Generator (JSON → TQL)
 export { generateTqlFromJson, writeTql } from './lib/parser/generator.js'
 
@@ -32,14 +40,17 @@ export { parseTql, parseTqlFromString, writeTqlJson } from './lib/parser/index.j
 export type {
   AmbiguityFacet,
   AmbiguityRow,
+  ChangeType,
   ContextFacet,
   ContextRow,
+  FacetDiff,
   IntentFacet,
   IntentRow,
   MeaningFacet,
   MeaningRow,
   QueryFacet,
   QueryRow,
+  RowChange,
   ScoreFacet,
   ScoreRow,
   StructureFacet,
@@ -49,6 +60,7 @@ export type {
   TasksFacet,
   TasksRow,
   TqlConversation,
+  TqlDiff,
   TqlDocument,
 } from './lib/parser/types.js'
 

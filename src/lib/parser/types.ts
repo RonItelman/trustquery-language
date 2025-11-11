@@ -114,3 +114,33 @@ export interface ScoreRow {
 export interface TqlConversation {
   documents: TqlDocument[]
 }
+
+// Diff types
+export type ChangeType = 'added' | 'modified' | 'removed' | 'unchanged'
+
+export interface RowChange {
+  after?: Record<string, string>
+  before?: Record<string, string>
+  index: number
+  // For modified rows: which specific fields changed
+  modifiedFields?: string[]
+  type: ChangeType
+}
+
+export interface FacetDiff {
+  changes: RowChange[]
+  facetName: string
+  rowsAfter: number
+  rowsBefore: number
+  status: ChangeType
+}
+
+export interface TqlDiff {
+  facets: FacetDiff[]
+  status: 'success' | 'table_changed'
+  summary: {
+    totalFacetsChanged: number
+    totalFacetsUnchanged: number
+    totalRowChanges: number
+  }
+}
