@@ -9,13 +9,13 @@ export default class Example extends Command {
   static examples = [
     `<%= config.bin %> <%= command.id %>
 Runs the default stablecoin example`,
-    `<%= config.bin %> <%= command.id %> --keep
-Runs example and keeps generated files`,
+    `<%= config.bin %> <%= command.id %> --clean
+Runs example and cleans up generated files`,
   ]
 
   static flags = {
-    keep: Flags.boolean({
-      description: 'Keep generated files instead of cleaning up',
+    clean: Flags.boolean({
+      description: 'Clean up generated files after running example',
       required: false,
     }),
   }
@@ -88,17 +88,17 @@ Runs example and keeps generated files`,
       this.log('  3. Compare changes: tql diff (coming soon)')
       this.log('  4. Export as JSON: tql create --format json\n')
 
-      // Clean up if --keep flag is not set
-      if (!flags.keep) {
+      // Clean up only if --clean flag is set
+      if (flags.clean) {
         this.log('🧹 Cleaning up generated files...')
         if (fs.existsSync(outputFile)) {
           fs.unlinkSync(outputFile)
           this.log(`  Deleted: ${outputFile}`)
         }
 
-        this.log('\n💡 Tip: Use --keep flag to preserve generated files\n')
+        this.log('')
       } else {
-        this.log('📌 Generated files preserved (--keep flag used)\n')
+        this.log('💡 Tip: Use "tql example --clean" to remove generated files\n')
       }
     } catch (error) {
       if (error instanceof Error) {

@@ -10,21 +10,113 @@ import type {
   StructureRow,
   TableRow,
   TasksRow,
+  TqlConversation,
   TqlDocument,
 } from './types.js'
 
 /**
- * Parse a .tql file into a JSON structure
+ * Parse a .tql file into a TqlConversation JSON structure
  */
-export function parseTql(filePath: string): TqlDocument {
+export function parseTql(filePath: string): TqlConversation {
   const content = fs.readFileSync(filePath, 'utf8')
-  return parseTqlFromString(content)
+  return parseTqlConversationFromString(content)
 }
 
 /**
- * Parse TQL content string into a JSON structure
+ * Parse TQL conversation content string into a TqlConversation structure
  */
-export function parseTqlFromString(content: string): TqlDocument {
+export function parseTqlConversationFromString(content: string): TqlConversation {
+  const lines = content.split('\n')
+
+  // Check for conversation header
+  const conversationMatch = lines[0]?.match(/^#conversation\[(\d+)\]:/)
+  if (!conversationMatch) {
+    // Legacy format: single document without conversation wrapper
+    // Parse as single document and wrap in conversation
+    const doc = parseTqlDocumentFromString(content)
+    return {
+      sequence: [{'#document[+0]': doc}],
+    }
+  }
+
+  const expectedDocCount = Number.parseInt(conversationMatch[1], 10)
+  const sequence: TqlConversation['sequence'] = []
+
+  // Split content by #document[+n]: or $diff[+i→+j]: headers
+  let currentItemKey: string | null = null
+  let currentItemContent: string[] = []
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i]
+
+    // Check for document header: #document[+n]:
+    const docMatch = line.match(/^(#document\[\+\d+\]):/)
+    if (docMatch) {
+      // Save previous item if exists
+      if (currentItemKey && currentItemContent.length > 0) {
+        addItemToSequence(sequence, currentItemKey, currentItemContent.join('\n'))
+      }
+
+      currentItemKey = docMatch[1]
+      currentItemContent = []
+      continue
+    }
+
+    // Check for diff header: $diff[+i→+j]:
+    const diffMatch = line.match(/^(\$diff\[\+\d+→\+\d+\]):/)
+    if (diffMatch) {
+      // Save previous item if exists
+      if (currentItemKey && currentItemContent.length > 0) {
+        addItemToSequence(sequence, currentItemKey, currentItemContent.join('\n'))
+      }
+
+      currentItemKey = diffMatch[1]
+      currentItemContent = []
+      continue
+    }
+
+    // Collect lines for current item
+    if (currentItemKey) {
+      currentItemContent.push(line)
+    }
+  }
+
+  // Process the last item
+  if (currentItemKey && currentItemContent.length > 0) {
+    addItemToSequence(sequence, currentItemKey, currentItemContent.join('\n'))
+  }
+
+  // Validate document count
+  const actualDocCount = sequence.filter((item) => Object.keys(item)[0].startsWith('#document')).length
+  if (actualDocCount !== expectedDocCount) {
+    throw new Error(
+      `Conversation header indicates ${expectedDocCount} documents, but found ${actualDocCount}`,
+    )
+  }
+
+  return {sequence}
+}
+
+/**
+ * Helper to add an item to the sequence based on its key
+ */
+function addItemToSequence(sequence: TqlConversation['sequence'], key: string, content: string): void {
+  if (key.startsWith('#document')) {
+    // Parse document content
+    const doc = parseTqlDocumentFromString(content)
+    sequence.push({[key]: doc} as any)
+  } else if (key.startsWith('$diff')) {
+    // For now, skip parsing diff content (it's metadata)
+    // We could parse it later if needed
+    // sequence.push({[key]: parsedDiff} as any)
+  }
+}
+
+/**
+ * Parse TQL document content string into a TqlDocument structure
+ * (internal function - parses facets only, no conversation wrapper)
+ */
+export function parseTqlDocumentFromString(content: string): TqlDocument {
   const lines = content.split('\n')
 
   const doc: TqlDocument = {

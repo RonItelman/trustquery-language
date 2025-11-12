@@ -6,6 +6,7 @@ export { generateTql, generateTqlDocument } from './lib/generators/index.js'
 export type { GenerateTqlDocumentInput, TqlGeneratorInput, TqlGeneratorOptions } from './lib/generators/index.js'
 // Operations (In-Memory First-Class)
 export {
+  applyChangesToConversation,
   deleteRowInMemory,
   deleteRowsInMemory,
   insertRowInMemory,
@@ -31,10 +32,13 @@ export {
 } from './lib/operations/diff.js'
 
 // Generator (JSON → TQL)
-export { generateTqlFromJson, writeTql } from './lib/parser/generator.js'
+export { generateTqlFromConversation, generateTqlFromJson, writeTql } from './lib/parser/generator.js'
 
 // Parser (TQL → JSON)
-export { parseTql, parseTqlFromString, writeTqlJson } from './lib/parser/index.js'
+export { parseTql, parseTqlConversationFromString, parseTqlDocumentFromString, writeTqlJson } from './lib/parser/index.js'
+
+// Helper Functions
+export { getDocumentCount, getDocuments, getLastDocument } from './lib/parser/types.js'
 
 // Types
 export type {
@@ -53,6 +57,7 @@ export type {
   RowChange,
   ScoreFacet,
   ScoreRow,
+  SequenceItem,
   StructureFacet,
   StructureRow,
   TableFacet,

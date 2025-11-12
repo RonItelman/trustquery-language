@@ -3,9 +3,10 @@ import * as fs from 'node:fs'
 import {basename, dirname, extname, join} from 'node:path'
 
 import {generateTql, generateTqlDocument} from '../lib/generators/index.js'
-import {generateTqlFromJson} from '../lib/parser/generator.js'
-import {parseTqlFromString, writeTqlJson} from '../lib/parser/index.js'
+import {generateTqlFromConversation} from '../lib/parser/generator.js'
+import {writeTqlJson} from '../lib/parser/index.js'
 import type {TqlConversation, TqlDocument} from '../lib/parser/types.js'
+import {getDocumentCount} from '../lib/parser/types.js'
 import {readCsv} from '../lib/readers/csv.js'
 import {insertRowInMemory} from '../lib/operations/crud.js'
 
@@ -102,7 +103,7 @@ static flags = {
 
       // Wrap in TqlConversation (always)
       const conversation: TqlConversation = {
-        documents: [doc],
+        sequence: [{'#document[+0]': doc}],
       }
 
       // Determine format (default to tql)
@@ -114,8 +115,8 @@ static flags = {
         if (outputFormat === 'json') {
           this.log(JSON.stringify(conversation, null, 2))
         } else {
-          // Generate TQL markdown from first document
-          const tqlContent = generateTqlFromJson(doc)
+          // Generate TQL markdown from conversation
+          const tqlContent = generateTqlFromConversation(conversation)
           this.log(tqlContent)
         }
       } else {
@@ -127,15 +128,13 @@ static flags = {
           fs.writeFileSync(output, JSON.stringify(conversation, null, 2), 'utf8')
         } else {
           // Write conversation as TQL markdown
-          // For now, just write the first document
-          // TODO: Support multiple documents in .tql format
-          const tqlContent = generateTqlFromJson(doc)
+          const tqlContent = generateTqlFromConversation(conversation)
           fs.writeFileSync(output, tqlContent, 'utf8')
         }
 
         this.log(`✓ Created ${output}`)
         this.log(`  Format: ${outputFormat.toUpperCase()}`)
-        this.log(`  Documents: ${conversation.documents.length}`)
+        this.log(`  Documents: ${getDocumentCount(conversation)}`)
         this.log(`  Data rows: ${csvData.rows.length}`)
         this.log(`  Columns: ${csvData.headers.length}`)
         if (query) {
@@ -203,7 +202,7 @@ static flags = {
 
       // Wrap in TqlConversation (always)
       const conversation: TqlConversation = {
-        documents: [doc],
+        sequence: [{'#document[+0]': doc}],
       }
 
       // Determine format (default to tql)
@@ -215,7 +214,7 @@ static flags = {
         if (outputFormat === 'json') {
           this.log(JSON.stringify(conversation, null, 2))
         } else {
-          const tqlContent = generateTqlFromJson(doc)
+          const tqlContent = generateTqlFromConversation(conversation)
           this.log(tqlContent)
         }
       } else {
@@ -223,13 +222,13 @@ static flags = {
         if (outputFormat === 'json') {
           fs.writeFileSync(outputPath, JSON.stringify(conversation, null, 2), 'utf8')
         } else {
-          const tqlContent = generateTqlFromJson(doc)
+          const tqlContent = generateTqlFromConversation(conversation)
           fs.writeFileSync(outputPath, tqlContent, 'utf8')
         }
 
         this.log(`✓ Created ${outputPath}`)
         this.log(`  Format: ${outputFormat.toUpperCase()}`)
-        this.log(`  Documents: ${conversation.documents.length}`)
+        this.log(`  Documents: ${getDocumentCount(conversation)}`)
         this.log(`  Data rows: ${rows.length}`)
         this.log(`  Columns: ${headers.length}`)
         if (query) {

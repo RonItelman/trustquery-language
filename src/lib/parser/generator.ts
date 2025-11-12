@@ -1,9 +1,48 @@
 import * as fs from 'node:fs'
 
-import type {TqlDocument} from './types.js'
+import {formatDiffAsMarkdown} from '../operations/diff.js'
+import type {TqlConversation, TqlDocument} from './types.js'
+import {getDocumentCount} from './types.js'
 
 /**
- * Generate a .tql file from a TqlDocument JSON structure
+ * Generate a .tql file from a TqlConversation JSON structure
+ */
+export function generateTqlFromConversation(conversation: TqlConversation): string {
+  const sections: string[] = []
+
+  // Add conversation header with document count
+  const docCount = getDocumentCount(conversation)
+  sections.push(`#conversation[${docCount}]:`)
+  sections.push('') // Empty line after conversation header
+
+  // Iterate through sequence and output each item
+  for (let i = 0; i < conversation.sequence.length; i++) {
+    const item = conversation.sequence[i]
+    const key = Object.keys(item)[0]
+    const value = Object.values(item)[0]
+
+    if (key.startsWith('#document')) {
+      // Output document
+      sections.push(`${key}:`)
+      sections.push(generateTqlFromJson(value as TqlDocument))
+    } else if (key.startsWith('$diff')) {
+      // Output diff
+      sections.push(`${key}:`)
+      sections.push(formatDiffAsMarkdown(value as any, false)) // No colors in file
+    }
+
+    // Add empty line between items (except after last)
+    if (i < conversation.sequence.length - 1) {
+      sections.push('')
+    }
+  }
+
+  return sections.join('\n')
+}
+
+/**
+ * Generate facets content for a single TqlDocument
+ * (Used internally by generateTqlFromConversation)
  */
 export function generateTqlFromJson(doc: TqlDocument): string {
   const sections: string[] = []
@@ -23,10 +62,10 @@ export function generateTqlFromJson(doc: TqlDocument): string {
 }
 
 /**
- * Write TQL document to file
+ * Write TQL conversation to file
  */
-export function writeTql(filePath: string, doc: TqlDocument): void {
-  const content = generateTqlFromJson(doc)
+export function writeTql(filePath: string, conversation: TqlConversation): void {
+  const content = generateTqlFromConversation(conversation)
   fs.writeFileSync(filePath, content, 'utf8')
 }
 

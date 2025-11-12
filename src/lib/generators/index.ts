@@ -1,6 +1,6 @@
 import type {TqlDocument} from '../parser/types.js'
 
-import {parseTqlFromString} from '../parser/index.js'
+import {parseTqlDocumentFromString} from '../parser/index.js'
 import {generateAmbiguityFacet} from './ambiguity.js'
 import {generateContextFacet} from './context.js'
 import {generateTableFacet} from './data.js'
@@ -96,5 +96,5 @@ export function generateTqlDocument(input: GenerateTqlDocumentInput): TqlDocumen
   const tqlString = generateTql({headers, rows})
 
   // Parse to TqlDocument object
-  return parseTqlFromString(tqlString)
+  return parseTqlDocumentFromString(tqlString)
 }

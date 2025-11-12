@@ -110,9 +110,30 @@ export interface ScoreRow {
   value: string
 }
 
-// Conversation type (array of TQL documents)
+// Sequence items: documents and diffs with keys matching .tql format
+export type SequenceItem =
+  | Record<`#document[+${number}]`, TqlDocument>
+  | Record<`$diff[+${number}→+${number}]`, TqlDiff>
+
+// Conversation type (sequence of documents and diffs)
 export interface TqlConversation {
-  documents: TqlDocument[]
+  sequence: SequenceItem[]
+}
+
+// Helper functions for working with sequence
+export function getDocuments(conversation: TqlConversation): TqlDocument[] {
+  return conversation.sequence
+    .filter((item) => Object.keys(item)[0].startsWith('#document'))
+    .map((item) => Object.values(item)[0] as TqlDocument)
+}
+
+export function getLastDocument(conversation: TqlConversation): TqlDocument | undefined {
+  const docs = getDocuments(conversation)
+  return docs[docs.length - 1]
+}
+
+export function getDocumentCount(conversation: TqlConversation): number {
+  return getDocuments(conversation).length
 }
 
 // Diff types

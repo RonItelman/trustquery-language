@@ -1,4 +1,5 @@
 import type {FacetDiff, RowChange, TqlConversation, TqlDiff, TqlDocument} from '../parser/types.js'
+import {getDocuments} from '../parser/types.js'
 
 /**
  * Compare two TQL documents and return a structured diff
@@ -55,16 +56,18 @@ export function diffConversationStep(
   fromIndex: number,
   toIndex: number,
 ): TqlDiff {
-  if (fromIndex < 0 || fromIndex >= conversation.documents.length) {
+  const documents = getDocuments(conversation)
+
+  if (fromIndex < 0 || fromIndex >= documents.length) {
     throw new Error(`Invalid fromIndex: ${fromIndex}`)
   }
 
-  if (toIndex < 0 || toIndex >= conversation.documents.length) {
+  if (toIndex < 0 || toIndex >= documents.length) {
     throw new Error(`Invalid toIndex: ${toIndex}`)
   }
 
-  const before = conversation.documents[fromIndex]
-  const after = conversation.documents[toIndex]
+  const before = documents[fromIndex]
+  const after = documents[toIndex]
 
   return diffTqlDocuments(before, after)
 }

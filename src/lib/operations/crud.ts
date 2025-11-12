@@ -8,11 +8,14 @@ import type {
   StructureRow,
   TableRow,
   TasksRow,
+  TqlConversation,
   TqlDocument,
 } from '../parser/types.js'
+import {getDocuments} from '../parser/types.js'
 
 import {writeTql} from '../parser/generator.js'
 import {parseTql} from '../parser/index.js'
+import {diffTqlDocuments} from './diff.js'
 
 type FacetName = 'ambiguity' | 'context' | 'intent' | 'meaning' | 'query' | 'score' | 'structure' | 'table' | 'tasks'
 
@@ -194,15 +197,23 @@ export function updateRowInMemory<T extends FacetName>(
  * @param filePath - Path to the .tql file
  * @param facet - The facet to insert into
  * @param data - Row data (without index, will be auto-assigned)
+ * @param documentIndex - Index of document in conversation (default: 0)
  */
 export function insertRow<T extends FacetName>(
   filePath: string,
   facet: T,
   data: Omit<FacetRowType<T>, 'index'>,
+  documentIndex = 0,
 ): void {
-  const doc = parseTql(filePath)
-  insertRowInMemory(doc, facet, data)
-  writeTql(filePath, doc)
+  const conversation = parseTql(filePath)
+  const documents = getDocuments(conversation)
+
+  if (!documents[documentIndex]) {
+    throw new Error(`Document at index ${documentIndex} not found`)
+  }
+
+  insertRowInMemory(documents[documentIndex], facet, data)
+  writeTql(filePath, conversation)
 }
 
 /**
@@ -210,15 +221,23 @@ export function insertRow<T extends FacetName>(
  * @param filePath - Path to the .tql file
  * @param facet - The facet to insert into
  * @param dataArray - Array of row data (without index)
+ * @param documentIndex - Index of document in conversation (default: 0)
  */
 export function insertRows<T extends FacetName>(
   filePath: string,
   facet: T,
   dataArray: Array<Omit<FacetRowType<T>, 'index'>>,
+  documentIndex = 0,
 ): void {
-  const doc = parseTql(filePath)
-  insertRowsInMemory(doc, facet, dataArray)
-  writeTql(filePath, doc)
+  const conversation = parseTql(filePath)
+  const documents = getDocuments(conversation)
+
+  if (!documents[documentIndex]) {
+    throw new Error(`Document at index ${documentIndex} not found`)
+  }
+
+  insertRowsInMemory(documents[documentIndex], facet, dataArray)
+  writeTql(filePath, conversation)
 }
 
 /**
@@ -226,15 +245,23 @@ export function insertRows<T extends FacetName>(
  * @param filePath - Path to the .tql file
  * @param facet - The facet to delete from
  * @param index - The index of the row to delete (1-based)
+ * @param documentIndex - Index of document in conversation (default: 0)
  */
 export function deleteRow<T extends FacetName>(
   filePath: string,
   facet: T,
   index: number,
+  documentIndex = 0,
 ): void {
-  const doc = parseTql(filePath)
-  deleteRowInMemory(doc, facet, index)
-  writeTql(filePath, doc)
+  const conversation = parseTql(filePath)
+  const documents = getDocuments(conversation)
+
+  if (!documents[documentIndex]) {
+    throw new Error(`Document at index ${documentIndex} not found`)
+  }
+
+  deleteRowInMemory(documents[documentIndex], facet, index)
+  writeTql(filePath, conversation)
 }
 
 /**
@@ -242,15 +269,23 @@ export function deleteRow<T extends FacetName>(
  * @param filePath - Path to the .tql file
  * @param facet - The facet to delete from
  * @param indices - Array of indices to delete (1-based)
+ * @param documentIndex - Index of document in conversation (default: 0)
  */
 export function deleteRows<T extends FacetName>(
   filePath: string,
   facet: T,
   indices: number[],
+  documentIndex = 0,
 ): void {
-  const doc = parseTql(filePath)
-  deleteRowsInMemory(doc, facet, indices)
-  writeTql(filePath, doc)
+  const conversation = parseTql(filePath)
+  const documents = getDocuments(conversation)
+
+  if (!documents[documentIndex]) {
+    throw new Error(`Document at index ${documentIndex} not found`)
+  }
+
+  deleteRowsInMemory(documents[documentIndex], facet, indices)
+  writeTql(filePath, conversation)
 }
 
 /**
@@ -259,14 +294,82 @@ export function deleteRows<T extends FacetName>(
  * @param facet - The facet to update
  * @param index - The index of the row to update (1-based)
  * @param data - New data for the row (without index)
+ * @param documentIndex - Index of document in conversation (default: 0)
  */
 export function updateRow<T extends FacetName>(
   filePath: string,
   facet: T,
   index: number,
   data: Partial<Omit<FacetRowType<T>, 'index'>>,
+  documentIndex = 0,
 ): void {
-  const doc = parseTql(filePath)
-  updateRowInMemory(doc, facet, index, data)
-  writeTql(filePath, doc)
+  const conversation = parseTql(filePath)
+  const documents = getDocuments(conversation)
+
+  if (!documents[documentIndex]) {
+    throw new Error(`Document at index ${documentIndex} not found`)
+  }
+
+  updateRowInMemory(documents[documentIndex], facet, index, data)
+  writeTql(filePath, conversation)
+}
+
+// ============================================================================
+// CONVERSATION OPERATIONS (With Diff Generation)
+// ============================================================================
+
+/**
+ * Deep clone a TqlDocument
+ */
+function deepCloneDocument(doc: TqlDocument): TqlDocument {
+  return JSON.parse(JSON.stringify(doc)) as TqlDocument
+}
+
+/**
+ * Apply changes to a conversation document and create a new document with diff
+ * This is the immutable approach: doesn't modify existing document, creates new one
+ *
+ * @param conversation - The conversation to modify
+ * @param changes - Function that applies changes to the cloned document
+ * @param sourceDocIndex - Index of document to base changes on (default: last document)
+ * @returns Updated conversation with new document and diff appended to sequence
+ */
+export function applyChangesToConversation(
+  conversation: TqlConversation,
+  changes: (doc: TqlDocument) => void,
+  sourceDocIndex?: number,
+): TqlConversation {
+  // Get all documents from sequence
+  const documents = conversation.sequence
+    .filter((item) => Object.keys(item)[0].startsWith('#document'))
+    .map((item) => Object.values(item)[0] as TqlDocument)
+
+  // Default to last document
+  const fromIndex = sourceDocIndex ?? documents.length - 1
+  const originalDoc = documents[fromIndex]
+
+  if (!originalDoc) {
+    throw new Error(`Document at index ${fromIndex} not found`)
+  }
+
+  // Clone the source document
+  const newDoc = deepCloneDocument(originalDoc)
+
+  // Apply changes to the new document
+  changes(newDoc)
+
+  // Generate diff between original and new
+  const diff = diffTqlDocuments(originalDoc, newDoc)
+
+  // Create new sequence with appended diff and document
+  const toIndex = documents.length
+  const newSequence = [
+    ...conversation.sequence,
+    {[`$diff[+${fromIndex}→+${toIndex}]`]: diff} as any,
+    {[`#document[+${toIndex}]`]: newDoc} as any,
+  ]
+
+  return {
+    sequence: newSequence,
+  }
 }
